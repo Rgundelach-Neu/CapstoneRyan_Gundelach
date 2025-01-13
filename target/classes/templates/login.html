@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Page</title>
+</head>
+  <h1>
+   Xylophone
+  </h1>
+<body>
+  <div class="LoginStage">
+    <h1>Please login to access</h1>
+    <form action="#" th:action="@{/loginUser}" th:object="${LoginInformation}" method="post">
+      <input type="text" th:field="*{UserName}" placeholder="Username">
+      <input type="password" th:field="*{UserPassword}" placeholder="Password">
+      <button type="submit" value="Submit"></button>
+    </form>
+  </div>
+</body>
+</html>
