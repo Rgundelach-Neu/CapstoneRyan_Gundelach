@@ -8,6 +8,7 @@ package Rgundelach.Capstone.PageControllers.LogIn;
 
 import Rgundelach.Capstone.Models.UserManager;
 import Rgundelach.Capstone.Models.Users;
+import Rgundelach.Capstone.PasswordManager.SaltedHash;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 @Controller
 public class LoginController {
 
-
+    @Autowired
+    UserManager userManager;
     @Autowired
     InMemoryUserDetailsManager inMemoryUserDetailsManager;
     @GetMapping("/loginUser")
@@ -32,19 +34,17 @@ public class LoginController {
     public String Loginpost(@ModelAttribute LoginInformation loginInformation, Model model) {
         model.addAttribute("LoginInformation", loginInformation);
         //Check with mongo
-        /*Users possibleUser = userManager.findUser(new Users(loginInformation.getUserName(),null, loginInformation.getUserPassword()));
+        Users possibleUser = userManager.getUser(loginInformation.getUserName());
+
         if(possibleUser != null){
-            GlobalObjects.SignInUser(possibleUser);
-            //Create user in inmemorymanager
+            if(new SaltedHash().passwordEncoder().matches(loginInformation.getUserPassword(), possibleUser.getPassword())){
+                inMemoryUserDetailsManager.createUser(
+                        User.withUsername(possibleUser.getName())
+                                .password(possibleUser.getPassword())
+                                .roles(possibleUser.getRoles()).build());
+            }
+
         }
-
-         */
-        Users users = new Users(loginInformation.getUserName(), null, loginInformation.getUserPassword());
-        inMemoryUserDetailsManager.createUser(
-                        User.withUsername(users.getName())
-                        .password(users.getPassword())
-                        .roles("USER").build());
-
         return "HomeServerPage";
     }
 }

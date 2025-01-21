@@ -17,8 +17,7 @@ import java.util.List;
 @Service
 public class MongoDAL implements IMongoDAL {
 
-    @Autowired
-    private UserRepository userRepository;
+    public UserRepository userRepository;
 
     public void addUser(Users users){
         userRepository.save(users);

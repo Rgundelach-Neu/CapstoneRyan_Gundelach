@@ -27,7 +27,16 @@ public class Users {
         this.name = name;
         Email = email;
         this.password = new SaltedHash().passwordEncoder().encode(password);
+        if(roles.isEmpty()) roles.add("USER");
     }
+    public Users( String name, String email, String password,List<String> roles) {
+        this.name = name;
+        Email = email;
+        this.password = new SaltedHash().passwordEncoder().encode(password);
+        this.roles.addAll(roles);
+
+    }
+    public Users(){}
 
 
     public String getName() {

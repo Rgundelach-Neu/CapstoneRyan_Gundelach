@@ -9,6 +9,7 @@ package Rgundelach.Capstone.PageControllers.CreateAccount;
 import Rgundelach.Capstone.Models.UserManager;
 import Rgundelach.Capstone.Models.Users;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 
 @Controller
+@EnableMongoRepositories
 public class CreateUserController {
 
     @Autowired
@@ -27,6 +29,7 @@ public class CreateUserController {
         model.addAttribute("CreateUserInformation", new CreateUserInformation());
         return "CreateUser";
     }
+
 
     @PostMapping("/CreateUser")
     public String PostCreateUser(Model model,@ModelAttribute CreateUserInformation createUserInformation){
