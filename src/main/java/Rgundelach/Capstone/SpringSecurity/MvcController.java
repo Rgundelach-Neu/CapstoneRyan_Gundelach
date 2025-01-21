@@ -16,5 +16,6 @@ public class MvcController {
     public void addViewControllers(ViewControllerRegistry registry){
         registry.addViewController("/greeting").setViewName("greeting");
         registry.addViewController("/loginUser").setViewName("login");
+        registry.addViewController("/CreateUser").setViewName("CreateUser");
     }
 }

@@ -62,6 +62,9 @@ public class SaltedHash {
     public String PasswordEncryption(String password){
         return PasswordBcrypt(password);
     }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
 
 }

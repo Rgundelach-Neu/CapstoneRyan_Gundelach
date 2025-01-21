@@ -13,8 +13,12 @@
     <form action="#" th:action="@{/loginUser}" th:object="${LoginInformation}" method="post">
       <input type="text" th:field="*{UserName}" placeholder="Username">
       <input type="password" th:field="*{UserPassword}" placeholder="Password">
-      <button type="submit" value="Submit"></button>
+      <br/><button type="submit" value="Submit">Log In</button>
     </form>
+      <form action="#" th:action="@{/CreateUser}" method="get">
+          <button type="submit" value="Submit">Create User</button>
+      </form>
+      <a href=""></a>
   </div>
 </body>
 </html>

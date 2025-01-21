@@ -5,13 +5,13 @@
  * @packageName Rgundelach.Capstone.PageControllers;
  */
 
-package Rgundelach.Capstone.PageControllers;
+package Rgundelach.Capstone.PageControllers.LogIn;
 
 public class LoginInformation {
 
 
-    private String UserPassword;
-    private String UserName;
+    public String UserPassword;
+    public  String UserName;
 
     public String getUserPassword() {
         return UserPassword;

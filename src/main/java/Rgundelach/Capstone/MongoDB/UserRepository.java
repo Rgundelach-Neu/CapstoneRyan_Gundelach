@@ -8,9 +8,13 @@ package Rgundelach.Capstone.MongoDB;
 
 
 import Rgundelach.Capstone.Models.Users;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
 
-public interface UserRepository extends MongoRepository<Users,Integer> {
+
+@Repository
+public interface UserRepository extends MongoRepository<Users,String> {
 
 }

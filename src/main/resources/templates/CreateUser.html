@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div class="CreateUserStage">
+  <h1>Thank You for Joining!</h1>
+    <form action="#" th:action="@{/CreateUser}" th:object="${CreateUserInformation}" method="post">
+        <input type="text" th:field="*{email}" placeholder="Email">
+        <input type="text" th:field="*{username}" placeholder="Username">
+        <input type="password" th:field="*{password}" placeholder="Password">
+        <br/><button type="submit" value="Submit">Create User</button>
+    </form>
+</div>
+</body>
+</html>
