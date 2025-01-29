@@ -35,10 +35,11 @@ public class CreateUserController {
     public String PostCreateUser(Model model,@ModelAttribute CreateUserInformation createUserInformation){
         Users user = new Users(createUserInformation.getUsername(),createUserInformation.getEmail(),createUserInformation.getPassword());
         System.out.println("NextLine?");
-//        if(global.manager.findUser(user) == null){
-//            global.manager.CreateUser(user);
-//        }
-        userManager.CreateUser(user);
+        if(userManager.getUser(createUserInformation.getUsername()).getClass() == Users.class){
+         //ErrorPage
+        }else {
+            userManager.CreateUser(user);
+        }
         //create mongo user
         //Sign them in
         return "HomeServerPage";

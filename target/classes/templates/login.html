@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+<link rel="stylesheet" th:href="@{/Styles/Base.css}">
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Login Page</title>
 </head>
-  <h1>
+  <h1 class="Title">
    Xylophone
   </h1>
 <body>
@@ -13,8 +14,11 @@
     <form action="#" th:action="@{/loginUser}" th:object="${LoginInformation}" method="post">
       <input type="text" th:field="*{UserName}" placeholder="Username">
       <input type="password" th:field="*{UserPassword}" placeholder="Password">
-      <br/><button type="submit" value="Submit">Log In</button>
+      </br>
+      </br>
+        <button type="submit" value="Submit">Log In</button>
     </form>
+      </br>
       <form action="#" th:action="@{/CreateUser}" method="get">
           <button type="submit" value="Submit">Create User</button>
       </form>
