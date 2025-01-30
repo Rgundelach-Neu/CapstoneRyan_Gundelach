@@ -9,7 +9,7 @@
    Xylophone
   </h1>
 <body>
-  <div class="LoginStage">
+  <div class="AuthStage">
     <h1>Please login to access</h1>
     <form action="#" th:action="@{/loginUser}" th:object="${LoginInformation}" method="post">
       <input type="text" th:field="*{UserName}" placeholder="Username">
@@ -22,7 +22,7 @@
       <form action="#" th:action="@{/CreateUser}" method="get">
           <button type="submit" value="Submit">Create User</button>
       </form>
-      <a href=""></a>
+
   </div>
 </body>
 </html>

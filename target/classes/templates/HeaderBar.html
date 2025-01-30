@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<link rel="stylesheet" href="../Styles/Base.css">
+<link rel="stylesheet" th:href="@{/Styles/Base.css}">
 
 <head>
     <meta charset="UTF-8">
@@ -9,9 +9,9 @@
 <body>
 <div class="HeaderBar" th:fragment="header">
   <ul class="HeaderBar">
-      <li class="HeaderItem-left HeaderButton" ><a>Home</a></li>
+      <li class="HeaderItem-left HeaderButton" ><a th:href="@{/Home}">Home</a></li>
       <li class="HeaderItem-left HeaderButton" ><a>Server</a></li>
-      <li class="HeaderItem-left HeaderButton" ><a>Profile</a></li>
+      <li class="HeaderItem-left HeaderButton" ><a th:href="@{/Home/Profile}">Profile</a></li>
       <li class="HeaderItem-right HeaderButton" ><a>Logout</a></li>
   </ul>
 </div>

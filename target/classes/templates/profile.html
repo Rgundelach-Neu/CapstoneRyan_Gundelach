@@ -1,10 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
+<link rel="stylesheet" th:href="@{/Styles/Base.css}">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
+<div th:insert="HeaderBar :: header"></div>
 <body>
+<div class="UserInfo">
+    <form class="ProfileUpdater" th:object="${UserInfo}" th:action="@{/Home/Profile/Update}" th:method="Put">
+        <label>
+            Username:
+            <input type="text" th:value="*{name}"/>
+        </label> </br>
+        <label>
+            Email:
+            <input type="text" th:value="*{Email}">
+        </label>
+        <label>
+            role:
+            <select th:each="role : ${roles}">
+                <option th:text ="${roles}"></option>
+            </select>>
+        </label>
+        <label>
+            password:
+            <input type="password" th:placeholder="password">
+        </label>
+    </form>
 
+</div>
 </body>
 </html>

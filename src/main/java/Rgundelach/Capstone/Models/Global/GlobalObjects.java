@@ -19,5 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GlobalObjects {
+    static Users currentUser = null;
 
+    public static void SetCurrentUser(Users user){
+        currentUser = user;
+    }
+    public static Users getCurrentUser(){
+        return  currentUser;
+    }
 }

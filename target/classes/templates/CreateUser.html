@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+<link rel="stylesheet" th:href="@{/Styles/Base.css}">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
-<div class="CreateUserStage">
-  <h1>Thank You for Joining!</h1>
+    <h1 class="Title">Xylophone</h1>
+<div class="AuthStage">
+    <h1 class="">Thank You for Joining!</h1>
     <form action="#" th:action="@{/CreateUser}" th:object="${CreateUserInformation}" method="post">
         <input type="text" th:field="*{email}" placeholder="Email">
+        </br></br>
         <input type="text" th:field="*{username}" placeholder="Username">
+        </br></br>
         <input type="password" th:field="*{password}" placeholder="Password">
-        <br/><button type="submit" value="Submit">Create User</button>
+        </br></br>
+        <button type="submit" value="Submit">Create User</button>
     </form>
+    </br>
+    <form th:action="@{/loginUser}" method="post"><button type="submit" value="Submit">Go Back</button></form>
 </div>
 </body>
 </html>

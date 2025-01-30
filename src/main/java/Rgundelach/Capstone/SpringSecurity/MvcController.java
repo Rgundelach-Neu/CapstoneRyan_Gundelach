@@ -8,7 +8,6 @@ package Rgundelach.Capstone.SpringSecurity;
 
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 
 @Configuration
@@ -18,11 +17,7 @@ public class MvcController {
         registry.addViewController("/greeting").setViewName("greeting");
         registry.addViewController("/loginUser").setViewName("login");
         registry.addViewController("/CreateUser").setViewName("CreateUser");
-    }
-
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        if (!registry.hasMappingForPattern("/Styles/**")) {
-            registry.addResourceHandler("/Styles/**").addResourceLocations("src/main/resources/static/Styles/");
-        }
+        registry.addViewController("/Home").setViewName("HomeServerPage");
+        registry.addViewController("/Home/Profile").setViewName("profile");
     }
 }

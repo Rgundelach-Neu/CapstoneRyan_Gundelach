@@ -6,6 +6,7 @@
  */
 package Rgundelach.Capstone.PageControllers.LogIn;
 
+import Rgundelach.Capstone.Models.Global.GlobalObjects;
 import Rgundelach.Capstone.Models.UserManager;
 import Rgundelach.Capstone.Models.Users;
 import Rgundelach.Capstone.PasswordManager.SaltedHash;
@@ -43,8 +44,9 @@ public class LoginController {
                                 .password(possibleUser.getPassword())
                                 .roles(possibleUser.getRoles()).build());
             }
-
+            GlobalObjects.SetCurrentUser(possibleUser);
+            return "HomeServerPage";
         }
-        return "HomeServerPage";
+    return "login";
     }
 }

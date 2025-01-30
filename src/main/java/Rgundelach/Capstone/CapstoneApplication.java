@@ -1,5 +1,6 @@
 package Rgundelach.Capstone;
 
+import Rgundelach.Capstone.Models.Global.GlobalObjects;
 import Rgundelach.Capstone.MongoDB.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -15,7 +16,6 @@ import java.util.Arrays;
 @SpringBootApplication(scanBasePackages = { "Rgundelach.Capstone" })
 @EnableMongoRepositories
 public class CapstoneApplication implements CommandLineRunner {
-
 
 	@Autowired
 	private UserRepository userRepository;
