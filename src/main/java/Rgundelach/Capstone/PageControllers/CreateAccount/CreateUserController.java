@@ -35,9 +35,11 @@ public class CreateUserController {
     public String PostCreateUser(Model model,@ModelAttribute CreateUserInformation createUserInformation){
         Users user = new Users(createUserInformation.getUsername(),createUserInformation.getEmail(),createUserInformation.getPassword());
         System.out.println("NextLine?");
-        if(userManager.getUser(createUserInformation.getUsername()).getClass() == Users.class){
-         //ErrorPage
-        }else {
+        try {
+            if (userManager.getUser(createUserInformation.getUsername()).getClass() == Users.class) {
+                //ErrorPage
+            }
+        }catch (NullPointerException exception){
             userManager.CreateUser(user);
         }
         //create mongo user

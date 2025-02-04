@@ -76,4 +76,12 @@ input{
     padding: 5px;
     border-radius: 10px;
 }
-
+br{
+    padding: 5px;
+}
+.LargeText{
+    font-size: xx-large;
+}
+.CenterText{
+    text-align: center;
+}

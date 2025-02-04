@@ -8,25 +8,33 @@
 <div th:insert="HeaderBar :: header"></div>
 <body>
 <div class="UserInfo">
-    <form class="ProfileUpdater" th:object="${UserInfo}" th:action="@{/Home/Profile/Update}" th:method="Put">
+    <form class="AuthStage" th:object="${UserInfo}" th:action="@{/Home/Profile/Update}" th:method="POST">
         <label>
             Username:
-            <input type="text" th:value="*{name}"/>
+            <input type="text" th:value="*{username}" th:field="*{username}"/>
         </label> </br>
+        </br>
         <label>
             Email:
-            <input type="text" th:value="*{Email}">
+            <input type="text" th:value="*{email}" th:field="*{email}">
         </label>
+        </br>
+<!--        </br>
         <label>
             role:
             <select th:each="role : ${roles}">
                 <option th:text ="${roles}"></option>
-            </select>>
+            </select>
+            </br> -->
+            </br>
         </label>
         <label>
             password:
-            <input type="password" th:placeholder="password">
+            <input type="password" th:field="*{password}" th:placeholder="password">
         </label>
+        </br>
+        </br>
+        <button type="submit" value="submit">Update Information</button>
     </form>
 
 </div>

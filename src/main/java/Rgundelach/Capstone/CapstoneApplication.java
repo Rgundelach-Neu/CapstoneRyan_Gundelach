@@ -2,6 +2,8 @@ package Rgundelach.Capstone;
 
 import Rgundelach.Capstone.Models.Global.GlobalObjects;
 import Rgundelach.Capstone.MongoDB.UserRepository;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -20,6 +22,19 @@ public class CapstoneApplication implements CommandLineRunner {
 	@Autowired
 	private UserRepository userRepository;
 	public static void main(String[] args) {
+		/*
+		GlobalObjects.setDockerClient(
+				DefaultDockerClientConfig.createDefaultConfigBuilder()
+				.withDockerHost("unix:///var/run/docker.sock")
+				.withDockerTlsVerify(false)
+				//.withDockerCertPath("/home/user/.docker")
+				.withRegistryUsername(registryUser)
+				.withRegistryPassword(registryPass)
+				.withRegistryEmail(registryMail)
+				.withRegistryUrl(registryUrl)
+				.build());
+				*/
+
 		SpringApplication.run(CapstoneApplication.class, args);
 	}
 

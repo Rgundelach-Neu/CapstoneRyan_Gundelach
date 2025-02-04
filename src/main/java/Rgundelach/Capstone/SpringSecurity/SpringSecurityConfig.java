@@ -37,6 +37,7 @@ public class SpringSecurityConfig {
                 .requestMatchers(HttpMethod.GET).permitAll()
                 .requestMatchers(HttpMethod.POST,"/loginUser").permitAll()
                 .requestMatchers(HttpMethod.POST,"/CreateUser").permitAll()
+                .requestMatchers(HttpMethod.POST,"/Home/Profile/Update").permitAll()
                 ); // Remove unnecessary items later
 
 
