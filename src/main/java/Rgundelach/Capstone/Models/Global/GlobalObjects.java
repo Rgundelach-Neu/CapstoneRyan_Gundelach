@@ -8,7 +8,7 @@ package Rgundelach.Capstone.Models.Global;
 
 import Rgundelach.Capstone.Models.UserManager;
 import Rgundelach.Capstone.Models.Users;
-import com.github.dockerjava.api.DockerClient;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.User;
@@ -22,8 +22,6 @@ import java.util.List;
 public class GlobalObjects {
     static Users currentUser = null;
 
-    static DockerClient dockerClient = null;
-
     public static void SetCurrentUser(Users user){
         currentUser = user;
     }
@@ -31,11 +29,4 @@ public class GlobalObjects {
         return  currentUser;
     }
 
-    public static DockerClient getDockerClient() {
-        return dockerClient;
-    }
-
-    public static void setDockerClient(DockerClient dockerClient) {
-        GlobalObjects.dockerClient = dockerClient;
-    }
 }
