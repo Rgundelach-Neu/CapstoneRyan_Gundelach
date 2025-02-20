@@ -28,6 +28,13 @@ public class LoginController {
     InMemoryUserDetailsManager inMemoryUserDetailsManager;
     @GetMapping("/loginUser")
     public String LoginForm(Model model) {
+        try {
+            if (inMemoryUserDetailsManager.userExists(GlobalObjects.getCurrentUser().getName())) {
+                return "HomeServerPage";
+            }
+        }catch (NullPointerException exception){
+
+        }
         model.addAttribute("LoginInformation", new LoginInformation());
         return "login";
     }
@@ -43,6 +50,7 @@ public class LoginController {
                         User.withUsername(possibleUser.getName())
                                 .password(possibleUser.getPassword())
                                 .roles(possibleUser.getRoles()).build());
+
             }
             GlobalObjects.SetCurrentUser(possibleUser);
             return "HomeServerPage";

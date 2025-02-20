@@ -6,16 +6,18 @@
  */
 package Rgundelach.Capstone.Docker;
 
+import Rgundelach.Capstone.PageControllers.Servers.ServerInformation;
 import com.google.gson.reflect.TypeToken;
+import com.sun.jdi.event.ExceptionEvent;
+import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.BatchV1Api;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.apis.NodeV1Api;
+import io.kubernetes.client.openapi.apis.*;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.*;
+import org.apache.catalina.Server;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,27 +29,53 @@ import java.util.*;
 @RestController
 @RequestMapping("/API")
 public class Kubernetes {
+    public Kubernetes(){
+        start();
+    }
     //To see working kubectl logs testpod -n capstone-server --container test-container
     ApiClient client = null;
     final String WORKING_NAMESPACE = "capstone-server";
     final String HANDLER = "runc";
-public void main() {
-    if(client == null) {
+    private void main() {
+    if (client == null) {
         start();
     }
+    String PVCName ="server-persistent-volume-claim";
+    String PVName ="server-persistent-volume";
     System.out.println("Connected!");
     System.out.println("Starting Job");
     NameSpaceExists();
-    RuntimeNameExists();
-    CreatePersistentVolume();
-    createPersistentVolumeClaim();
+    allIngresPolicy();
+    RuntimeNameExists("temp");
+    CreatePersistentVolume(PVName,PVCName);
+    createPersistentVolumeClaim(PVCName,PVName);
+   // createPod();
 
-    createPod();
+}
+    public void CreateServer(String PVCName, String PVName,String PodName,String RuntimeName,int PortNumber){
+        NameSpaceExists();
+        RuntimeNameExists(RuntimeName);
+        CreatePersistentVolume(PVName,PVCName);
+        createPersistentVolumeClaim(PVCName,PVName);
+        createPod(PodName,PortNumber,PVCName,PVName,RuntimeName);
+    }
+    public void CreateServer(ServerInformation info){
+        String PVCName = info.getPodName()+"-volume-claim";
+        String PVName = info.getPodName()+"-volume";
+        String RuntimeName =info.getPodName()+"-runtime";
+        NameSpaceExists();
 
+        RuntimeNameExists(RuntimeName);
+        CreatePersistentVolume(PVName,PVCName);
+        createPersistentVolumeClaim(PVCName,PVName);
+        //createPod(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
+        createServer(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
+        createService(info.getPodName(), info.getPortNumber());
+        allIngresPolicy(info.getPortNumber(),info.getPodName());
     }
 
     //Connects Kubernetes
-    public void start(){
+    private void start(){
         try {
             // System.setProperty("KUBECONFIG", "C:\\Users\\rgundelach\\.kube\\config");
             client = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(new FileReader("C:\\Users\\rgundelach\\.kube\\config"))).build(); //ChatGPT
@@ -56,23 +84,24 @@ public void main() {
             System.out.println(e);
         }
     }
-    public void createPod(){
+    private void createPod(String PodName,int portNumber, String PVCName,String PVName, String RuntimeName){
 
     //ChatGPT for template
     CoreV1Api api = new CoreV1Api(client);
         V1ObjectMeta metaData = new V1ObjectMeta()
-                .name("testpod").namespace(WORKING_NAMESPACE);
+                .name(PodName).namespace(WORKING_NAMESPACE);
 
+        //Container For MC Server
         V1Container container = new V1Container().name("test-container")
                 .image("itzg/minecraft-server")
                 .imagePullPolicy("Always")
                 // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
-                .addPortsItem(new V1ContainerPort().containerPort(32887).protocol("TCP"))
-                .addPortsItem(new V1ContainerPort().containerPort(32887).protocol("UDP"))
+                .addPortsItem(new V1ContainerPort().hostPort(portNumber).protocol("TCP"))
+                .addPortsItem(new V1ContainerPort().hostPort(portNumber).protocol("UDP"))
                 .addEnvItem(new V1EnvVar().name("EULA").value("TRUE")).volumeMounts(Collections.singletonList(
                         new V1VolumeMount()
-                                .name("data-persistent-volume")  // Volume name (should match pod volume name)
-                                .mountPath("/data")   // Mount path inside the container
+                                .name(PVName)  // Volume name (should match pod volume name)
+                                .mountPath("/"+PVName)   // Mount path inside the container
                 ));
 
 
@@ -82,22 +111,22 @@ public void main() {
 
         //chatGPT Volume
         V1Volume volume = new V1Volume()
-                .name("data-persistent-volume")
+                .name(PVName)
                 .persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource()
-                        .claimName("data"));
+                        .claimName(PVCName));
 
         V1PodSpec podSpec = new V1PodSpec()
                 .addContainersItem(container)
                 .addVolumesItem(volume)
                 .nodeName("desktop-control-plane")
                 .overhead(overheadResources)
-                .runtimeClassName("runtime")
+                .runtimeClassName(RuntimeName)
                 ;//.overhead(overheadResources);
 
 
         V1Pod pod = new V1Pod()
                 .apiVersion("v1")
-                .kind("Pod")//make service later idk mannnn
+                .kind("Pod")//make service later idk mannnn //Depolyment!
                 .metadata(metaData)
                 .spec(podSpec);
 
@@ -111,9 +140,8 @@ public void main() {
             System.out.println(e);
         }
     }
-    public boolean NameSpaceExists(){
+    private boolean NameSpaceExists(){
         CoreV1Api api = new CoreV1Api(client);
-
         try {
             V1NamespaceList namespacesList = api.listNamespace().execute();
            // System.out.println(namespacesList);
@@ -132,8 +160,16 @@ public void main() {
             throw new RuntimeException(e);
         }
     }
-    public boolean RuntimeNameExists(){
+    private boolean RuntimeNameExists(String RuntimeName){
         NodeV1Api api = new NodeV1Api(client);
+        try{
+         V1RuntimeClassList runtimeClassList =  api.listRuntimeClass().execute();
+         for (V1RuntimeClass runtime : runtimeClassList.getItems()) {
+             if(runtime.getMetadata().getName().equals(RuntimeName)){
+                 return true;
+             }
+         }
+        }catch (Exception e){}
         V1Overhead overhead = new V1Overhead();
         //ChatGPT code for overheadResources
         Map<String, Quantity> overheadResources = new HashMap<>();
@@ -143,22 +179,15 @@ public void main() {
         overhead.setPodFixed(overheadResources);
 
         V1RuntimeClass runtimeClass = new V1RuntimeClass()
-                .metadata(new V1ObjectMeta().name("runtime"))
+                .metadata(new V1ObjectMeta().name(RuntimeName))
                 .kind("RuntimeClass")
                 .handler(HANDLER)
                 .overhead(overhead);
         try {
 
             //api.createRuntimeClass(runtimeClass).execute();
-            V1RuntimeClassList list = api.listRuntimeClass().execute();
-            try{
-                if(list.getItems().get(0).getHandler().equals(HANDLER)){
-                    return true;
-                }
-            }catch (IndexOutOfBoundsException e){
-                api.createRuntimeClass(runtimeClass).execute();
-
-            }
+            V1RuntimeClass runtimeCreated = api.createRuntimeClass(runtimeClass).execute();
+            System.out.println("Runtime Created: " + runtimeCreated.getMetadata().getName());
         } catch (ApiException e) {
             System.out.println(e);
         }
@@ -168,13 +197,23 @@ public void main() {
 }
 
 //ChatGPT Method
-    public void createPersistentVolumeClaim(){
+    private void createPersistentVolumeClaim(String PVCName,String PVName){
 
         CoreV1Api api = new CoreV1Api(client);
+        try {
+            V1PersistentVolumeClaimList PVCList = api.listNamespacedPersistentVolumeClaim(WORKING_NAMESPACE).execute();
+            // System.out.println(namespacesList);
+            for (V1PersistentVolumeClaim pvc : PVCList.getItems()) {
+                if(pvc.getMetadata().getName().equals(PVCName)){
+                    return;
+                }
+            }
+        }
+            catch(Exception e){}
 
         // Step 2: Define the PVC Metadata
         V1ObjectMeta metadata = new V1ObjectMeta()
-                .name("data") // Name of the PVC
+                .name(PVCName) // Name of the PVC
                 .namespace(WORKING_NAMESPACE);
 
         // Step 3: Define PVC Spec
@@ -182,7 +221,7 @@ public void main() {
                 .accessModes(Collections.singletonList("ReadWriteOnce")) // Access Mode
                 .resources(new V1VolumeResourceRequirements()
                         .requests(Collections.singletonMap("storage", new Quantity("10Gi"))))
-                .volumeName("data-persistent-volume"); // Requested Storage
+                .volumeName(PVName); // Requested Storage
 
         // Step 4: Create PVC object
         V1PersistentVolumeClaim pvc = new V1PersistentVolumeClaim()
@@ -201,8 +240,19 @@ public void main() {
         System.out.println("PVC Created: " + createdPvc.getMetadata().getName());
     }
 
-    public void CreatePersistentVolume(){
+    private void CreatePersistentVolume(String PVName,String PVCName){
         CoreV1Api api = new CoreV1Api(client);
+
+        try {
+            V1PersistentVolumeList PVList = api.listPersistentVolume().execute();
+            // System.out.println(namespacesList);
+            for (V1PersistentVolume pvc : PVList.getItems()) {
+                if(pvc.getMetadata().getName().equals(PVName)){
+                    return;
+                }
+            }
+        }
+        catch(Exception e){}
 
         V1PersistentVolume volume = new V1PersistentVolume()
                 .apiVersion("v1")
@@ -211,15 +261,188 @@ public void main() {
                         .capacity(Collections.singletonMap("storage", new Quantity("10Gi")))
                         .accessModes(Collections.singletonList("ReadWriteOnce"))
                         .persistentVolumeReclaimPolicy("Retain")
-                        .hostPath(new V1HostPathVolumeSource().path("/mnt/data"))
-                        .claimRef(new V1ObjectReference().name("data").namespace(WORKING_NAMESPACE)))
-                .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name("data-persistent-volume"));
+                        .hostPath(new V1HostPathVolumeSource().path("/mnt/"+PVName))
+                        .claimRef(new V1ObjectReference().name(PVCName).namespace(WORKING_NAMESPACE)))
+                .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(PVName));
         try {
             api.createPersistentVolume(volume).execute();
+            System.out.println("Persistent Volume Created");
         } catch (ApiException e) {
             throw new RuntimeException(e);
         }
         ;// Access Mode
+    }
+
+    private void createServer(String ServerName,int portNumber, String PVCName,String PVName, String RuntimeName){
+
+        //ChatGPT for template
+        AppsV1Api api = new AppsV1Api(client);
+        V1ObjectMeta metaData = new V1ObjectMeta()
+                .name(ServerName).namespace(WORKING_NAMESPACE)
+                .labels(Collections.singletonMap("app",ServerName));
+
+        //Container For MC Server
+        V1Container container = new V1Container().name("test-container")
+                .image("itzg/minecraft-server:latest")
+                .imagePullPolicy("IfNotPresent")
+                // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
+                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP"))
+                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP"))
+                .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
+                .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
+                .volumeMounts(Collections.singletonList(
+                        new V1VolumeMount()
+                                .name(PVName)  // Volume name (should match pod volume name)
+                                .mountPath("/"+PVName)   // Mount path inside the container
+                ));
+
+
+        Map<String, Quantity> overheadResources = new HashMap<>();
+        overheadResources.put("cpu",new Quantity("1000m"));
+        overheadResources.put("memory",new Quantity("2Gi"));
+
+        //chatGPT Volume
+        V1Volume volume = new V1Volume()
+                .name(PVName)
+                .persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource()
+                        .claimName(PVCName));
+
+        V1DeploymentSpec deploymentSpec = new V1DeploymentSpec()
+                .replicas(1)
+                .selector(new V1LabelSelector().matchLabels(Collections.singletonMap("app",ServerName)))
+                .template(
+                    new V1PodTemplateSpec().metadata(new V1ObjectMeta()
+                                    .name(ServerName+"-replica")
+                                    .namespace(WORKING_NAMESPACE)
+                                    .labels(Collections.singletonMap("app",ServerName))
+                                )
+                            .spec(new V1PodSpec().addContainersItem(container)
+                                    .addVolumesItem(volume)
+                                    .nodeName("desktop-control-plane")
+                                    .overhead(overheadResources)
+                                    .runtimeClassName(RuntimeName))
+        );
+
+                /*.addContainersItem(container)
+                .addVolumesItem(volume)
+                .nodeName("desktop-control-plane")
+                .overhead(overheadResources)
+                .runtimeClassName(RuntimeName)
+                ;//.overhead(overheadResources);*/
+
+
+        V1Deployment deployment = new V1Deployment()
+                .apiVersion("apps/v1")
+                .kind("Deployment")//make service later idk mannnn //Depolyment!
+                .metadata(metaData)
+                .spec(deploymentSpec);
+
+
+        try {
+
+            V1Deployment createdDeployment = api.createNamespacedDeployment(WORKING_NAMESPACE,deployment).execute();
+            System.out.println("Created Deployment: "+createdDeployment.getMetadata().getName());
+
+        } catch (ApiException e) {
+            System.out.println(e);
+        }
+    }
+    public void createService(String ServerName,int portNumber){
+        CoreV1Api api = new CoreV1Api(client);
+        try{
+            for (V1Service service : api.listNamespacedService(WORKING_NAMESPACE).execute().getItems()) {
+                if(service.getMetadata().getName().equals(ServerName+"-service")){
+                    return;
+                }
+            }
+        }catch (Exception e){}
+        V1Service service = new V1Service()
+                .apiVersion("v1")
+                .kind("Service")
+                .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(ServerName+"-service"))
+                .spec(new V1ServiceSpec()
+                        .addPortsItem(
+                                new V1ServicePort()
+                                        .nodePort(portNumber)
+                                        .port(25565)
+                                        .targetPort(new IntOrString(25565))
+                                        .protocol("TCP")
+                                        .name(ServerName+"-tcp"))
+                        .addPortsItem(
+                                new V1ServicePort()
+                                        .nodePort(portNumber)
+                                        .port(25565).targetPort(new IntOrString(25565))
+                                        .protocol("UDP")
+                                        .name(ServerName+"-udp"))
+                        //.externalIPs(Collections.singletonList("192.168.0.1"))
+                        .ipFamilyPolicy("SingleStack")
+                        .selector(Collections.singletonMap("app",ServerName))
+                        //        .type("LoadBalancer")
+                        .type("NodePort")
+//                        .loadBalancerIP("172.42.42.100")
+                        //.externalTrafficPolicy("Local")
+
+
+                );
+
+        V1Service createdService = null;
+        try {
+            createdService = api.createNamespacedService(WORKING_NAMESPACE,service).execute();
+            System.out.println("Created Service: "+createdService.getMetadata().getName());
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+    public List<String[]> GetServerInformation(){
+
+           List<String[]> ServerInfo = new ArrayList<>();
+        try {
+           CoreV1Api api = new CoreV1Api(client);
+           AppsV1Api apiDeploy = new AppsV1Api(client);
+
+           V1ServiceList ServiceInfo;
+           V1DeploymentList Deploymentinfo;
+           try {
+               ServiceInfo = api.listNamespacedService(WORKING_NAMESPACE).execute();
+               Deploymentinfo = apiDeploy.listNamespacedDeployment(WORKING_NAMESPACE).execute();
+           } catch (ApiException e) {
+               throw new RuntimeException(e);
+           }
+           for (int i = 0; i < Deploymentinfo.getItems().size(); i++) {
+               String[] ServerInfoItem = {
+                       Deploymentinfo.getItems().get(i).getMetadata().getName(),
+                       ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).toString()
+               };
+               ServerInfo.add(ServerInfoItem);
+           }
+       }catch (IndexOutOfBoundsException ex){}
+        return ServerInfo;
+    }
+
+    public void allIngresPolicy(int PortNumber,String ServerName){
+         NetworkingV1Api api = new NetworkingV1Api(client);
+
+        //try {
+           // if(api.listNamespacedNetworkPolicy(WORKING_NAMESPACE).execute().getItems().size() != 0) {
+                try {
+                   V1NetworkPolicy policy = api.createNamespacedIngress(WORKING_NAMESPACE,new V1Ingress()
+                           .apiVersion("networking.k8s.io/v1")
+                           .kind("Ingress")
+                           .metadata(
+                                   new V1ObjectMeta()
+                                           .namespace(WORKING_NAMESPACE)
+                                           .name("ingress-"))
+                           .spec(
+                                   new V1IngressSpec()
+                                           .rules())
+                   )
+                } catch (ApiException e) {
+                    System.out.println("Error Policy");;
+                }
+            //}
+       /* } catch (ApiException e) {
+            System.out.println("Error Policy");        }*/
     }
 }
 

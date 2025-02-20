@@ -1,10 +1,27 @@
 <!DOCTYPE html>
+<link rel="stylesheet" th:href="@{/Styles/Base.css}">
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
-
+<div th:insert="HeaderBar :: header"></div>
+<ul>
+    <li th:each="item: ${Servers}">
+        <p>Server Info:</p>
+        <h1 th:text ="${item[0]}"></h1>
+        <h1 th:text ="${item[1]}"></h1>
+    </li>
+    <li>
+<form action="#" th:action="@{/Home/Server}" th:object="${ServerInformation}" method="post">
+    <label>ServerName: </label>
+    <input type="text" th:field="*{PodName}" placeholder="ServerName">
+    <label>PortNumber:</label>
+    <input type="number" th:field="*{PortNumber}">
+    <button type="submit">Submit</button>
+</form>
+    </li>
+</ul>
 </body>
 </html>

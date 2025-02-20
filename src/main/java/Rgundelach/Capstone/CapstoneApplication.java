@@ -23,9 +23,6 @@ public class CapstoneApplication implements CommandLineRunner {
 	@Autowired
 	private UserRepository userRepository;
 	public static void main(String[] args) {
-		// Docker swarm kubernetes or render or terraform or ansible
-		Kubernetes kubernetes = new Kubernetes();
-		kubernetes.main();
 		SpringApplication.run(CapstoneApplication.class, args);
 
 	}

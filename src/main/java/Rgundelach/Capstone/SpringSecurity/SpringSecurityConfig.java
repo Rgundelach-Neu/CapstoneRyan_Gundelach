@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -25,6 +26,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@PreAuthorize("hasRole('USER')")
 public class SpringSecurityConfig {
 
     @Bean
@@ -34,11 +36,19 @@ public class SpringSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests((requests) -> requests
-                .requestMatchers(HttpMethod.GET).permitAll()
+
+                .requestMatchers(HttpMethod.GET,"/loginUser").permitAll()
+                .requestMatchers(HttpMethod.GET,"/CreateUser").permitAll()
                 .requestMatchers(HttpMethod.POST,"/loginUser").permitAll()
                 .requestMatchers(HttpMethod.POST,"/CreateUser").permitAll()
-                .requestMatchers(HttpMethod.POST,"/Home/Profile/Update").permitAll()
-                ); // Remove unnecessary items later
+                .requestMatchers(HttpMethod.GET,"/Home").permitAll()
+                .requestMatchers(HttpMethod.POST,"/Home").permitAll()
+                .requestMatchers(HttpMethod.GET,"/Home/Server").permitAll()
+                .requestMatchers(HttpMethod.POST,"/Home/Server").permitAll()
+                .requestMatchers(HttpMethod.GET,"/Home/Profile").permitAll()
+                .requestMatchers(HttpMethod.POST,"/Home/Profile").permitAll()
+                .requestMatchers("Styles/**").permitAll()
+                ); // Remove unnecessary items late
 
 
         return http.build();
