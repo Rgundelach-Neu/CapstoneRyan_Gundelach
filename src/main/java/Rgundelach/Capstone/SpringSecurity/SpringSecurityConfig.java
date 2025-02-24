@@ -36,18 +36,7 @@ public class SpringSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests((requests) -> requests
-
-                .requestMatchers(HttpMethod.GET,"/loginUser").permitAll()
-                .requestMatchers(HttpMethod.GET,"/CreateUser").permitAll()
-                .requestMatchers(HttpMethod.POST,"/loginUser").permitAll()
-                .requestMatchers(HttpMethod.POST,"/CreateUser").permitAll()
-                .requestMatchers(HttpMethod.GET,"/Home").permitAll()
-                .requestMatchers(HttpMethod.POST,"/Home").permitAll()
-                .requestMatchers(HttpMethod.GET,"/Home/Server").permitAll()
-                .requestMatchers(HttpMethod.POST,"/Home/Server").permitAll()
-                .requestMatchers(HttpMethod.GET,"/Home/Profile").permitAll()
-                .requestMatchers(HttpMethod.POST,"/Home/Profile").permitAll()
-                .requestMatchers("Styles/**").permitAll()
+                        .anyRequest().permitAll()
                 ); // Remove unnecessary items late
 
 

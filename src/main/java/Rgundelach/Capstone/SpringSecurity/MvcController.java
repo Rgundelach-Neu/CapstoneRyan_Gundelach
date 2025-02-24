@@ -18,6 +18,7 @@ public class MvcController {
         registry.addViewController("/CreateUser").setViewName("CreateUser");
         registry.addViewController("/Home").setViewName("HomeServerPage");
         registry.addViewController("/Home/Server").setViewName("Server");
+        registry.addViewController("/Home/Server/Delete").setViewName("Server");
         registry.addViewController("/Home/Profile").setViewName("profile");
         registry.addViewController("/Home/Profile/Update").setViewName("profile");
         registry.addViewController("/Logout");

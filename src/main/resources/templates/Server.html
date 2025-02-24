@@ -9,9 +9,15 @@
 <div th:insert="HeaderBar :: header"></div>
 <ul>
     <li th:each="item: ${Servers}">
-        <p>Server Info:</p>
-        <h1 th:text ="${item[0]}"></h1>
-        <h1 th:text ="${item[1]}"></h1>
+        <H1>Server Info:</H1>
+            <span>
+                <p th:text ="${item[0]}"></p>
+                <p th:text ="${item[1]}"></p>
+            </span>
+            <span>
+                <a class="ui-button" th:href="@{/Home/Server/Delete/{id}(id=${item[0]})}">Delete</a>
+            </span>
+
     </li>
     <li>
 <form action="#" th:action="@{/Home/Server}" th:object="${ServerInformation}" method="post">

@@ -20,6 +20,7 @@ import io.kubernetes.client.util.*;
 import org.apache.catalina.Server;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.w3c.dom.Node;
 
 import javax.naming.Name;
 import java.io.FileReader;
@@ -45,7 +46,7 @@ public class Kubernetes {
     System.out.println("Connected!");
     System.out.println("Starting Job");
     NameSpaceExists();
-    allIngresPolicy();
+    //allIngresPolicy();
     RuntimeNameExists("temp");
     CreatePersistentVolume(PVName,PVCName);
     createPersistentVolumeClaim(PVCName,PVName);
@@ -70,8 +71,18 @@ public class Kubernetes {
         createPersistentVolumeClaim(PVCName,PVName);
         //createPod(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
         createServer(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
-        createService(info.getPodName(), info.getPortNumber());
-        allIngresPolicy(info.getPortNumber(),info.getPodName());
+         createService(info.getPodName(), info.getPortNumber());
+        //allIngresPolicy(info.getPortNumber(),info.getPodName());
+    }
+    public void DeleteServer(String ServerName){
+        String PVCName =ServerName+"-volume-claim";
+        String PVName =ServerName+"-volume";
+        String RuntimeName =ServerName+"-runtime";
+        deleteServer(ServerName);
+        deleteService(ServerName);
+        deletePV(PVName);
+        deletePVC(PVCName);
+        deleteRuntime(RuntimeName);
     }
 
     //Connects Kubernetes
@@ -118,7 +129,7 @@ public class Kubernetes {
         V1PodSpec podSpec = new V1PodSpec()
                 .addContainersItem(container)
                 .addVolumesItem(volume)
-                .nodeName("desktop-control-plane")
+                .nodeName("kind-control-plane")
                 .overhead(overheadResources)
                 .runtimeClassName(RuntimeName)
                 ;//.overhead(overheadResources);
@@ -286,8 +297,8 @@ public class Kubernetes {
                 .image("itzg/minecraft-server:latest")
                 .imagePullPolicy("IfNotPresent")
                 // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
-                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP"))
-                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP"))
+                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
+                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP").hostPort(portNumber).protocol("UDP"))
                 .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
                 .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
                 .volumeMounts(Collections.singletonList(
@@ -318,17 +329,10 @@ public class Kubernetes {
                                 )
                             .spec(new V1PodSpec().addContainersItem(container)
                                     .addVolumesItem(volume)
-                                    .nodeName("desktop-control-plane")
+                                    .nodeName("kind-control-plane")
                                     .overhead(overheadResources)
                                     .runtimeClassName(RuntimeName))
         );
-
-                /*.addContainersItem(container)
-                .addVolumesItem(volume)
-                .nodeName("desktop-control-plane")
-                .overhead(overheadResources)
-                .runtimeClassName(RuntimeName)
-                ;//.overhead(overheadResources);*/
 
 
         V1Deployment deployment = new V1Deployment()
@@ -347,7 +351,7 @@ public class Kubernetes {
             System.out.println(e);
         }
     }
-    public void createService(String ServerName,int portNumber){
+    private void createService(String ServerName,int portNumber){
         CoreV1Api api = new CoreV1Api(client);
         try{
             for (V1Service service : api.listNamespacedService(WORKING_NAMESPACE).execute().getItems()) {
@@ -361,7 +365,7 @@ public class Kubernetes {
                 .kind("Service")
                 .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(ServerName+"-service"))
                 .spec(new V1ServiceSpec()
-                        .addPortsItem(
+                          .addPortsItem(
                                 new V1ServicePort()
                                         .nodePort(portNumber)
                                         .port(25565)
@@ -374,13 +378,9 @@ public class Kubernetes {
                                         .port(25565).targetPort(new IntOrString(25565))
                                         .protocol("UDP")
                                         .name(ServerName+"-udp"))
-                        //.externalIPs(Collections.singletonList("192.168.0.1"))
                         .ipFamilyPolicy("SingleStack")
                         .selector(Collections.singletonMap("app",ServerName))
-                        //        .type("LoadBalancer")
                         .type("NodePort")
-//                        .loadBalancerIP("172.42.42.100")
-                        //.externalTrafficPolicy("Local")
 
 
                 );
@@ -412,7 +412,7 @@ public class Kubernetes {
            for (int i = 0; i < Deploymentinfo.getItems().size(); i++) {
                String[] ServerInfoItem = {
                        Deploymentinfo.getItems().get(i).getMetadata().getName(),
-                       ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).toString()
+                       "localhost:"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString()
                };
                ServerInfo.add(ServerInfoItem);
            }
@@ -420,29 +420,57 @@ public class Kubernetes {
         return ServerInfo;
     }
 
-    public void allIngresPolicy(int PortNumber,String ServerName){
-         NetworkingV1Api api = new NetworkingV1Api(client);
+    private void deleteServer(String serverName){
+        AppsV1Api api = new AppsV1Api(client);
+        try {
+            api.deleteNamespacedDeployment(serverName,WORKING_NAMESPACE).execute();
+        } catch (ApiException e) {
+            System.out.println("Server Deleted Un-successfully");
+            return;
+        }
+        System.out.println("Server Deleted Successfully");
+    }
+    private void deletePV(String PVName){
+        CoreV1Api api =new CoreV1Api(client);
+        try {
+            api.deletePersistentVolume(PVName).execute();
+        } catch (ApiException e) {
+            System.out.println("VolumeDeleted un-Successfully");
+            return;
+        }
+        System.out.println("VolumeDeleted un-Successfully");
+    }
+    private void deletePVC(String PVCName){
+        CoreV1Api api =new CoreV1Api(client);
+        try {
+            api.deleteNamespacedPersistentVolumeClaim(PVCName,WORKING_NAMESPACE).execute();
+        } catch (ApiException e) {
+            System.out.println("VolumeClaim Deleted un-Successfully");
+        }
+        System.out.println("VolumeClaim Deleted un-Successfully");
+        return;
+    }
+    private void deleteService(String ServerName){
+        CoreV1Api api = new CoreV1Api(client);
+        try {
+            api.deleteNamespacedService(ServerName+"-service",WORKING_NAMESPACE).execute();
+        } catch (ApiException e) {
+            System.out.println("Service Deleted un-successfully");
+            return;
+        }
+        System.out.println("Service Deleted successfully");
 
-        //try {
-           // if(api.listNamespacedNetworkPolicy(WORKING_NAMESPACE).execute().getItems().size() != 0) {
-                try {
-                   V1NetworkPolicy policy = api.createNamespacedIngress(WORKING_NAMESPACE,new V1Ingress()
-                           .apiVersion("networking.k8s.io/v1")
-                           .kind("Ingress")
-                           .metadata(
-                                   new V1ObjectMeta()
-                                           .namespace(WORKING_NAMESPACE)
-                                           .name("ingress-"))
-                           .spec(
-                                   new V1IngressSpec()
-                                           .rules())
-                   )
-                } catch (ApiException e) {
-                    System.out.println("Error Policy");;
-                }
-            //}
-       /* } catch (ApiException e) {
-            System.out.println("Error Policy");        }*/
+    }
+    private void deleteRuntime(String RunTimename){
+        NodeV1Api api = new NodeV1Api(client);
+        try {
+            api.deleteRuntimeClass(RunTimename).execute();
+        } catch (ApiException e) {
+            System.out.println("Runtime Delete Un-successfully");
+            return;
+        }
+        System.out.println("Runtime Delete successfully");
+
     }
 }
 
