@@ -79,8 +79,33 @@ input{
 br{
     padding: 5px;
 }
+li{
+    list-style-type: none;
+}
+.ServerInfoBox{
+    background-color: var(--secondaryColor);
+    border-radius: 10px;
+    margin-bottom: 3%;
+    margin-top: 3%;
+}
 .LargeText{
     font-size: xx-large;
+}
+.CenterText{
+    text-align: center;
+}
+.Inline{
+    display: inline-block;
+}
+.RightSide{
+    float:right;
+    margin-left: 0px;
+}
+.text{
+margin-left: 10px;
+}
+.EndofLine{
+    margin-right: 10px;
 }
 .CenterText{
     text-align: center;

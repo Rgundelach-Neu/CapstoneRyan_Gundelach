@@ -25,19 +25,34 @@ import org.w3c.dom.Node;
 import javax.naming.Name;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/API")
 public class Kubernetes {
+    private List<Integer> portNumbers = new ArrayList<>();
     public Kubernetes(){
         start();
+        CoreV1Api api = new CoreV1Api(client);
+        try {
+            V1ServiceList list = api.listNamespacedService(WORKING_NAMESPACE).execute();
+            for (V1Service service : list.getItems()) {
+               portNumbers.add(service.getSpec().getPorts().get(0).getNodePort());
+
+            }
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
     }
     //To see working kubectl logs testpod -n capstone-server --container test-container
     ApiClient client = null;
     final String WORKING_NAMESPACE = "capstone-server";
     final String HANDLER = "runc";
-    private void main() {
+    /*private void main() {
     if (client == null) {
         start();
     }
@@ -47,34 +62,48 @@ public class Kubernetes {
     System.out.println("Starting Job");
     NameSpaceExists();
     //allIngresPolicy();
-    RuntimeNameExists("temp");
+   // RuntimeNameExists("temp");
     CreatePersistentVolume(PVName,PVCName);
     createPersistentVolumeClaim(PVCName,PVName);
    // createPod();
 
-}
-    public void CreateServer(String PVCName, String PVName,String PodName,String RuntimeName,int PortNumber){
+}*/
+    /*public void CreateServer(String PVCName, String PVName,String PodName,String RuntimeName,int PortNumber){
         NameSpaceExists();
         RuntimeNameExists(RuntimeName);
         CreatePersistentVolume(PVName,PVCName);
         createPersistentVolumeClaim(PVCName,PVName);
         createPod(PodName,PortNumber,PVCName,PVName,RuntimeName);
-    }
-    public void CreateServer(ServerInformation info){
+
+    }*/
+    public int CreateServer(ServerInformation info){
         String PVCName = info.getPodName()+"-volume-claim";
         String PVName = info.getPodName()+"-volume";
         String RuntimeName =info.getPodName()+"-runtime";
         NameSpaceExists();
-
-        RuntimeNameExists(RuntimeName);
-        CreatePersistentVolume(PVName,PVCName);
+        RuntimeNameExists(RuntimeName,info.getMemory());
+        if(info.getServerType().equals("Terraria")){
+            CreatePersistentVolume(PVName,PVCName,true);
+        }else {
+            CreatePersistentVolume(PVName,PVCName,false);
+        }
         createPersistentVolumeClaim(PVCName,PVName);
         //createPod(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
-        createServer(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
-         createService(info.getPodName(), info.getPortNumber());
+        createServer(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName,info.getServerType());
+        switch (info.getServerType()){
+            case "Minecraft":
+                createMineCraftService(info.getPodName(), info.getPortNumber());
+                break;
+            case "Terraria":
+                createTerrariaService(info.getPodName(), info.getPortNumber());
+                break;
+        }
         //allIngresPolicy(info.getPortNumber(),info.getPodName());
+        portNumbers.add(info.getPortNumber());
+        return portNumbers.get(portNumbers.indexOf(info.getPortNumber()));
     }
-    public void DeleteServer(String ServerName){
+    public int DeleteServer(String ServerName){
+        int port = GetPortNumber(ServerName);
         String PVCName =ServerName+"-volume-claim";
         String PVName =ServerName+"-volume";
         String RuntimeName =ServerName+"-runtime";
@@ -83,6 +112,11 @@ public class Kubernetes {
         deletePV(PVName);
         deletePVC(PVCName);
         deleteRuntime(RuntimeName);
+        if(portNumbers.contains(port)){
+            portNumbers.remove(portNumbers.indexOf(port));
+            return port;
+        }
+        return -1;
     }
 
     //Connects Kubernetes
@@ -171,7 +205,7 @@ public class Kubernetes {
             throw new RuntimeException(e);
         }
     }
-    private boolean RuntimeNameExists(String RuntimeName){
+    private boolean RuntimeNameExists(String RuntimeName,int overHeadMemory){
         NodeV1Api api = new NodeV1Api(client);
         try{
          V1RuntimeClassList runtimeClassList =  api.listRuntimeClass().execute();
@@ -185,7 +219,7 @@ public class Kubernetes {
         //ChatGPT code for overheadResources
         Map<String, Quantity> overheadResources = new HashMap<>();
         overheadResources.put("cpu",new Quantity("1000m"));
-        overheadResources.put("memory",new Quantity("2Gi"));
+        overheadResources.put("memory",new Quantity(Integer.toString(overHeadMemory)+"Gi"));
         //overheadResources.put("storage",new Quantity("1Gi"));
         overhead.setPodFixed(overheadResources);
 
@@ -251,7 +285,7 @@ public class Kubernetes {
         System.out.println("PVC Created: " + createdPvc.getMetadata().getName());
     }
 
-    private void CreatePersistentVolume(String PVName,String PVCName){
+    private void CreatePersistentVolume(String PVName,String PVCName,boolean isTerraria){
         CoreV1Api api = new CoreV1Api(client);
 
         try {
@@ -264,17 +298,31 @@ public class Kubernetes {
             }
         }
         catch(Exception e){}
+        V1PersistentVolume volume;
+        if(isTerraria){
+            volume = new V1PersistentVolume()
+                    .apiVersion("v1")
+                    .kind("PersistentVolume")
+                    .spec(new V1PersistentVolumeSpec()
+                            .capacity(Collections.singletonMap("storage", new Quantity("10Gi")))
+                            .accessModes(Collections.singletonList("ReadWriteOnce"))
+                            .persistentVolumeReclaimPolicy("Retain")
+                            .hostPath(new V1HostPathVolumeSource().path("/root/.local/share/Terraria/Worlds"))
+                            .claimRef(new V1ObjectReference().name(PVCName).namespace(WORKING_NAMESPACE)))
+                    .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(PVName));
+        }else{
+            volume = new V1PersistentVolume()
+                    .apiVersion("v1")
+                    .kind("PersistentVolume")
+                    .spec(new V1PersistentVolumeSpec()
+                            .capacity(Collections.singletonMap("storage", new Quantity("10Gi")))
+                            .accessModes(Collections.singletonList("ReadWriteOnce"))
+                            .persistentVolumeReclaimPolicy("Retain")
+                            .hostPath(new V1HostPathVolumeSource().path("/mnt/"+PVName))
+                            .claimRef(new V1ObjectReference().name(PVCName).namespace(WORKING_NAMESPACE)))
+                    .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(PVName));
+        }
 
-        V1PersistentVolume volume = new V1PersistentVolume()
-                .apiVersion("v1")
-                .kind("PersistentVolume")
-                .spec(new V1PersistentVolumeSpec()
-                        .capacity(Collections.singletonMap("storage", new Quantity("10Gi")))
-                        .accessModes(Collections.singletonList("ReadWriteOnce"))
-                        .persistentVolumeReclaimPolicy("Retain")
-                        .hostPath(new V1HostPathVolumeSource().path("/mnt/"+PVName))
-                        .claimRef(new V1ObjectReference().name(PVCName).namespace(WORKING_NAMESPACE)))
-                .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(PVName));
         try {
             api.createPersistentVolume(volume).execute();
             System.out.println("Persistent Volume Created");
@@ -284,7 +332,7 @@ public class Kubernetes {
         ;// Access Mode
     }
 
-    private void createServer(String ServerName,int portNumber, String PVCName,String PVName, String RuntimeName){
+    private void createServer(String ServerName,int portNumber, String PVCName,String PVName, String RuntimeName,String ServerType){
 
         //ChatGPT for template
         AppsV1Api api = new AppsV1Api(client);
@@ -292,25 +340,8 @@ public class Kubernetes {
                 .name(ServerName).namespace(WORKING_NAMESPACE)
                 .labels(Collections.singletonMap("app",ServerName));
 
-        //Container For MC Server
-        V1Container container = new V1Container().name("test-container")
-                .image("itzg/minecraft-server:latest")
-                .imagePullPolicy("IfNotPresent")
-                // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
-                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
-                .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP").hostPort(portNumber).protocol("UDP"))
-                .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
-                .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
-                .volumeMounts(Collections.singletonList(
-                        new V1VolumeMount()
-                                .name(PVName)  // Volume name (should match pod volume name)
-                                .mountPath("/"+PVName)   // Mount path inside the container
-                ));
+        V1Container container = getContainerType(ServerType,ServerName,portNumber,PVName);
 
-
-        Map<String, Quantity> overheadResources = new HashMap<>();
-        overheadResources.put("cpu",new Quantity("1000m"));
-        overheadResources.put("memory",new Quantity("2Gi"));
 
         //chatGPT Volume
         V1Volume volume = new V1Volume()
@@ -330,7 +361,7 @@ public class Kubernetes {
                             .spec(new V1PodSpec().addContainersItem(container)
                                     .addVolumesItem(volume)
                                     .nodeName("kind-control-plane")
-                                    .overhead(overheadResources)
+                                    //.overhead(overheadResources)
                                     .runtimeClassName(RuntimeName))
         );
 
@@ -351,7 +382,7 @@ public class Kubernetes {
             System.out.println(e);
         }
     }
-    private void createService(String ServerName,int portNumber){
+    private void createMineCraftService(String ServerName,int portNumber)   {
         CoreV1Api api = new CoreV1Api(client);
         try{
             for (V1Service service : api.listNamespacedService(WORKING_NAMESPACE).execute().getItems()) {
@@ -378,6 +409,45 @@ public class Kubernetes {
                                         .port(25565).targetPort(new IntOrString(25565))
                                         .protocol("UDP")
                                         .name(ServerName+"-udp"))
+                        .externalIPs(Collections.singletonList("192.168.1.7"))
+                        .ipFamilyPolicy("SingleStack")
+                        .selector(Collections.singletonMap("app",ServerName))
+                        .type("NodePort")
+
+
+                );
+
+        V1Service createdService = null;
+        try {
+            createdService = api.createNamespacedService(WORKING_NAMESPACE,service).execute();
+            System.out.println("Created Service: "+createdService.getMetadata().getName());
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+    private void createTerrariaService(String ServerName,int portNumber){
+        CoreV1Api api = new CoreV1Api(client);
+        try{
+            for (V1Service service : api.listNamespacedService(WORKING_NAMESPACE).execute().getItems()) {
+                if(service.getMetadata().getName().equals(ServerName+"-service")){
+                    return;
+                }
+            }
+        }catch (Exception e){}
+        V1Service service = new V1Service()
+                .apiVersion("v1")
+                .kind("Service")
+                .metadata(new V1ObjectMeta().namespace(WORKING_NAMESPACE).name(ServerName+"-service"))
+                .spec(new V1ServiceSpec()
+                          .addPortsItem(
+                                new V1ServicePort()
+                                        .nodePort(portNumber)
+                                        .port(7777)
+                                        .targetPort(new IntOrString(7777))
+                                        .protocol("TCP")
+                                        .name(ServerName+"-tcp"))
+                        .externalIPs(Collections.singletonList("192.168.1.7"))
                         .ipFamilyPolicy("SingleStack")
                         .selector(Collections.singletonMap("app",ServerName))
                         .type("NodePort")
@@ -410,13 +480,16 @@ public class Kubernetes {
                throw new RuntimeException(e);
            }
            for (int i = 0; i < Deploymentinfo.getItems().size(); i++) {
-               String[] ServerInfoItem = {
-                       Deploymentinfo.getItems().get(i).getMetadata().getName(),
-                       "localhost:"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString()
-               };
-               ServerInfo.add(ServerInfoItem);
+               List<String> ServerInfoItem = new ArrayList<>();
+               ServerInfoItem.add(Deploymentinfo.getItems().get(i).getMetadata().getName());
+               ServerInfoItem.add("localhost:"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString());
+               String localhost = InetAddress.getLocalHost().getHostAddress();
+               ServerInfoItem.add(localhost+":"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString());
+               ServerInfo.add(ServerInfoItem.toArray(new String[3]));
            }
        }catch (IndexOutOfBoundsException ex){}
+        catch (UnknownHostException e){}
+
         return ServerInfo;
     }
 
@@ -471,6 +544,93 @@ public class Kubernetes {
         }
         System.out.println("Runtime Delete successfully");
 
+    }
+
+    public List<String[]> GetResourceManagement(){
+        CoreV1Api api = new CoreV1Api(client);
+        List<String[]> resources = new ArrayList<>();
+        try {
+            V1PodList pods = api.listNamespacedPod(WORKING_NAMESPACE).execute();
+            for (V1Pod pod : pods.getItems()) {
+                resources.add(new String[] {
+                    pod.getSpec().getOverhead().get("cpu").getNumber().toString(),
+                    pod.getSpec().getOverhead().get("memory").getNumber().divide(new BigDecimal((1024*1024*1024))).toString()
+                });
+            }
+
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        return resources;
+
+    }
+
+    private int GetPortNumber(String ServerName){
+        CoreV1Api api = new CoreV1Api(client);
+        try {
+            V1ServiceList list = api.listNamespacedService(WORKING_NAMESPACE).execute();
+            for (V1Service service : list.getItems()) {
+                if (service.getMetadata().getName().contains(ServerName)){
+                    return  service.getSpec().getPorts().get(0).getNodePort();
+                }
+
+            }
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        return -1;
+    }
+
+    public List<Integer> CorrectPortNumber(List<Integer> list){
+        for (int i : portNumbers) {
+            if(list.contains(i)){
+                list.remove(list.indexOf(i));
+            }
+        }
+        return list;
+    }
+
+    private V1Container getContainerType(String typeofImage,String ServerName,int portNumber,String PVName){
+        switch (typeofImage){
+            case "Minecraft":
+                //Container For MC Server
+                return new V1Container().name("minecraft")
+                        .image("itzg/minecraft-server:latest")
+                        .imagePullPolicy("IfNotPresent")
+                        // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
+                        .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
+                        .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP").hostPort(portNumber).protocol("UDP"))
+                        .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
+                        .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
+                        .volumeMounts(Collections.singletonList(
+                                new V1VolumeMount()
+                                        .name(PVName)  // Volume name (should match pod volume name)
+                                        .mountPath("/"+PVName)   // Mount path inside the container
+                        ));
+            case "Terraria":
+                 return new V1Container().name("terraria")
+                        .image("ryshe/terraria:latest")
+                         .stdin(true)
+                         .tty(true)
+                        .imagePullPolicy("IfNotPresent")
+                        // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
+                        .addPortsItem(new V1ContainerPort().containerPort(7777).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
+                         .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
+                        .addEnvItem(new V1EnvVar().name("WORLD_FILENAME").value("world.wld"))
+                         .addArgsItem("/root/.local/share/Terraria/Worlds/world.wld")
+                         .addArgsItem("-autocreate").addArgsItem("2")
+/*                         .lifecycle(new V1Lifecycle()
+                                 .postStart(new V1LifecycleHandler()
+                                         .exec(new V1ExecAction().addCommandItem("/root/.local/share/Terraria/").addCommandItem("-autocreate 2")
+                                         )))*/
+                        .volumeMounts(Collections.singletonList(
+                                new V1VolumeMount()
+                                        .name(PVName)  // Volume name (should match pod volume name)
+                                        .mountPath("/root/.local/share/Terraria/Worlds")   // Mount path inside the container
+                        ));
+            default:
+                return new V1Container();
+        }
     }
 }
 

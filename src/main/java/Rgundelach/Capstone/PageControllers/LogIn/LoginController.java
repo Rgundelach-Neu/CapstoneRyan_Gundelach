@@ -30,7 +30,7 @@ public class LoginController {
     public String LoginForm(Model model) {
         try {
             if (inMemoryUserDetailsManager.userExists(GlobalObjects.getCurrentUser().getName())) {
-                return "HomeServerPage";
+                return "redirect:/Home";
             }
         }catch (NullPointerException exception){
 
@@ -53,7 +53,7 @@ public class LoginController {
 
             }
             GlobalObjects.SetCurrentUser(possibleUser);
-            return "HomeServerPage";
+            return "redirect:/Home";
         }
     return "login";
     }

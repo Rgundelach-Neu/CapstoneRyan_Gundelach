@@ -23,10 +23,27 @@ public class GlobalObjects {
     static Users currentUser = null;
 
     public static void SetCurrentUser(Users user){
-        currentUser = user;
+        if(currentUser == null){
+            currentUser = user;
+            isLoggedIn = true;
+        }
+    }
+
+    public static void LogOut(){
+        currentUser = null;
+        isLoggedIn = false;
     }
     public static Users getCurrentUser(){
         return  currentUser;
     }
 
+    public static boolean isLoggedIn =false;
+
+
+    public static boolean isAllowed(){
+            if(currentUser != null){
+                return true;
+            }
+            return false;
+        }
 }

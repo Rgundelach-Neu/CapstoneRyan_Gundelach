@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link rel="stylesheet" th:href="@{/Styles/Base.css}">
+<link rel="stylesheet" th:href="@{/Styles/Base.css}" xmlns="http://www.w3.org/1999/html">
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,26 +8,45 @@
 <body>
 <div th:insert="HeaderBar :: header"></div>
 <ul>
-    <li th:each="item: ${Servers}">
-        <H1>Server Info:</H1>
-            <span>
-                <p th:text ="${item[0]}"></p>
-                <p th:text ="${item[1]}"></p>
-            </span>
-            <span>
-                <a class="ui-button" th:href="@{/Home/Server/Delete/{id}(id=${item[0]})}">Delete</a>
-            </span>
-
-    </li>
+    <li class="ServerInfoBox" th:each="item: ${Servers}">
+        <H1 class="text">Server Info:</H1>
+                <p class="Inline text">ServerName: </p>
+                <p class="RightSide text EndofLine">Resource Usage</p>
+                </br>
+                <p class="Inline RightSide text EndofLine" th:text ="${item.getResources()[0]}"></p>
+                <p class="Inline RightSide text">Cpu cores:</p>
+                <p class="Inline RightSide text" >Gigabytes</p>
+                <p class="Inline RightSide text" th:text ="${item.getResources()[1]}"></p>
+                <p class="Inline RightSide text" >Memory Reserved:</p>
+                <p class="text"  th:text="${item.getNames()[0]}"></p>
+                <p class="Inline text">Ip Connections: </p>
+                <p class="Inline text" th:text ="${item.getNames()[1]}"></p>
+                <p class="Inline text">or if not host</p>
+                <p class="Inline text" th:text ="${item.getNames()[2]}"></p>
+        <a class="RightSide Inline" th:href="@{/Home/Server/Delete/{id}(id=${item.getNames()[0]})}">Delete</a></li>
     <li>
 <form action="#" th:action="@{/Home/Server}" th:object="${ServerInformation}" method="post">
     <label>ServerName: </label>
     <input type="text" th:field="*{PodName}" placeholder="ServerName">
     <label>PortNumber:</label>
-    <input type="number" th:field="*{PortNumber}">
+    <select  th:field="*{PortNumber}">
+        <option th:each="number: ${AvailablePortNumbers}" th:value="${number}" th:text="${number}"></option>
+    </select>
+    </br>
+    </br>
+    <label>ServeType:</label>
+    <select  th:field="*{ServerType}">
+        <option th:value="Minecraft" th:text="Minecraft"></option>
+        <option th:value="Terraria" th:text="Terraria"></option>
+    </select>
+    <label>Memory Reserved:</label>
+    <input type="number" th:field="*{Memory}" placeholder="ServerName" min="2" max="8">
+
     <button type="submit">Submit</button>
 </form>
     </li>
 </ul>
+<div class="LargeText CenterText" th:each="string: ${Error}" th:text="${string}" >
+</div>
 </body>
 </html>

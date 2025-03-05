@@ -30,11 +30,16 @@ public class ProfileController {
     @GetMapping("/Home/Profile")
     @PreAuthorize("hasRole('USER')")
     public String getProfile(Model model){
-        ProfileInformation profileInformation = new ProfileInformation();
-        profileInformation.setUsername(GlobalObjects.getCurrentUser().getName());
-        profileInformation.setEmail(GlobalObjects.getCurrentUser().getEmail());
-        model.addAttribute("UserInfo", profileInformation);
-        return "profile";
+        if(GlobalObjects.isAllowed()) {
+            ProfileInformation profileInformation = new ProfileInformation();
+            profileInformation.setUsername(GlobalObjects.getCurrentUser().getName());
+            profileInformation.setEmail(GlobalObjects.getCurrentUser().getEmail());
+            model.addAttribute("UserInfo", profileInformation);
+            return "profile";
+        }
+        else{
+            return "redirect:/loginUser";
+        }
     }
     @PostMapping("/Home/Profile/Update")
     @PreAuthorize("hasRole('USER')")

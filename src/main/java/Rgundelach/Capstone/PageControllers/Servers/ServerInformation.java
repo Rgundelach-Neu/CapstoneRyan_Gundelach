@@ -12,6 +12,10 @@ public class ServerInformation {
     String PodName;
     int PortNumber;
 
+    int Memory = 2;
+
+    String ServerType;
+
 
     public String getPodName() {
         return PodName;
@@ -31,5 +35,21 @@ public class ServerInformation {
 
     public void setPortNumber(int portNumber) {
         PortNumber = portNumber;
+    }
+
+    public int getMemory() {
+        return Memory;
+    }
+
+    public void setMemory(int memory) {
+        Memory = memory;
+    }
+
+    public String getServerType() {
+        return ServerType;
+    }
+
+    public void setServerType(String serverType) {
+        ServerType = serverType;
     }
 }

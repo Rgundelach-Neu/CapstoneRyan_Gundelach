@@ -24,9 +24,13 @@ public class LogOutController {
 
     @GetMapping("/Logout")
     public String Logout(Model model){
-        inMemoryUserDetailsManager.deleteUser(GlobalObjects.getCurrentUser().getName());
-        GlobalObjects.SetCurrentUser(new Users());
-        model.addAttribute("LoginInformation", new LoginInformation());
-        return "login";
+        if(GlobalObjects.isAllowed()) {
+            inMemoryUserDetailsManager.deleteUser(GlobalObjects.getCurrentUser().getName());
+            GlobalObjects.LogOut();
+            model.addAttribute("LoginInformation", new LoginInformation());
+            return "redirect:/loginUser";
+        }else {
+            return "redirect:/loginUser";
+        }
     }
 }

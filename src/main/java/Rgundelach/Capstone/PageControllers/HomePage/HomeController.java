@@ -7,6 +7,7 @@
 package Rgundelach.Capstone.PageControllers.HomePage;
 
 
+import Rgundelach.Capstone.Models.Global.GlobalObjects;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,8 +18,10 @@ public class HomeController {
     @GetMapping("/Home")
     @PreAuthorize("hasRole('USER')")
     public String HomeGet(){
-
-
-        return "HomeServerPage";
+        if(GlobalObjects.isAllowed()) {
+            return "HomeServerPage";
+        }else {
+            return "redirect:/loginUser";
+        }
     }
 }
