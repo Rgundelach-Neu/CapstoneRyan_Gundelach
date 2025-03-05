@@ -16,6 +16,16 @@ public class ServerInformation {
 
     String ServerType;
 
+    public String getSlug() {
+        return Slug;
+    }
+
+    public void setSlug(String slug) {
+        Slug = slug;
+    }
+
+    String Slug;
+
 
     public String getPodName() {
         return PodName;

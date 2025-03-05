@@ -89,8 +89,9 @@ public class Kubernetes {
         }
         createPersistentVolumeClaim(PVCName,PVName);
         //createPod(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName);
-        createServer(info.getPodName(),info.getPortNumber(),PVCName,PVName,RuntimeName,info.getServerType());
+        createServer(info.getPodName(),info.getPortNumber(),info.getMemory(),PVCName,PVName,RuntimeName,info.getServerType(),info.getSlug());
         switch (info.getServerType()){
+            case "ModdedMinecraft":
             case "Minecraft":
                 createMineCraftService(info.getPodName(), info.getPortNumber());
                 break;
@@ -332,15 +333,16 @@ public class Kubernetes {
         ;// Access Mode
     }
 
-    private void createServer(String ServerName,int portNumber, String PVCName,String PVName, String RuntimeName,String ServerType){
+    private void createServer(String ServerName,int portNumber,int memory, String PVCName,String PVName, String RuntimeName,String ServerType,String Slug){
 
         //ChatGPT for template
         AppsV1Api api = new AppsV1Api(client);
         V1ObjectMeta metaData = new V1ObjectMeta()
                 .name(ServerName).namespace(WORKING_NAMESPACE)
+                .annotations(Collections.singletonMap("type",ServerType))
                 .labels(Collections.singletonMap("app",ServerName));
 
-        V1Container container = getContainerType(ServerType,ServerName,portNumber,PVName);
+        V1Container container = getContainerType(ServerType,ServerName,portNumber,memory,PVName,Slug);
 
 
         //chatGPT Volume
@@ -482,10 +484,11 @@ public class Kubernetes {
            for (int i = 0; i < Deploymentinfo.getItems().size(); i++) {
                List<String> ServerInfoItem = new ArrayList<>();
                ServerInfoItem.add(Deploymentinfo.getItems().get(i).getMetadata().getName());
+               ServerInfoItem.add(Deploymentinfo.getItems().get(i).getMetadata().getAnnotations().get("type"));
                ServerInfoItem.add("localhost:"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString());
                String localhost = InetAddress.getLocalHost().getHostAddress();
                ServerInfoItem.add(localhost+":"+ServiceInfo.getItems().get(i).getSpec().getPorts().get(0).getNodePort().toString());
-               ServerInfo.add(ServerInfoItem.toArray(new String[3]));
+               ServerInfo.add(ServerInfoItem.toArray(new String[4]));
            }
        }catch (IndexOutOfBoundsException ex){}
         catch (UnknownHostException e){}
@@ -590,7 +593,7 @@ public class Kubernetes {
         return list;
     }
 
-    private V1Container getContainerType(String typeofImage,String ServerName,int portNumber,String PVName){
+    private V1Container getContainerType(String typeofImage,String ServerName,int portNumber,int memory,String PVName,String Slug){
         switch (typeofImage){
             case "Minecraft":
                 //Container For MC Server
@@ -601,6 +604,10 @@ public class Kubernetes {
                         .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
                         .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP").hostPort(portNumber).protocol("UDP"))
                         .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
+                        .addEnvItem(new V1EnvVar().name("DIFFICULTY").value("normal"))
+                        .addEnvItem(new V1EnvVar().name("ALLOW_FLIGHT").value("true"))
+                        .addEnvItem(new V1EnvVar().name("MOTD").value("Server Brought to you by Xylophone"))
+                        .addEnvItem(new V1EnvVar().name("MEMORY").value(Integer.toString(memory)+"G"))
                         .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
                         .volumeMounts(Collections.singletonList(
                                 new V1VolumeMount()
@@ -627,6 +634,27 @@ public class Kubernetes {
                                 new V1VolumeMount()
                                         .name(PVName)  // Volume name (should match pod volume name)
                                         .mountPath("/root/.local/share/Terraria/Worlds")   // Mount path inside the container
+                        ));
+            case "ModdedMinecraft":
+                //Container For MC Server
+                return new V1Container().name("minecraft")
+                        .image("itzg/minecraft-server")
+                        .imagePullPolicy("IfNotPresent")
+                        // .imagePullPolicy("IfNotPresent")//FIND IMAGE ID
+                        .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-tcp").protocol("TCP").hostPort(portNumber).protocol("TCP"))
+                        .addPortsItem(new V1ContainerPort().containerPort(25565).name(ServerName+"-udp").protocol("UDP").hostPort(portNumber).protocol("UDP"))
+                        .addEnvItem(new V1EnvVar().name("TYPE").value("MODRINTH"))
+                        .addEnvItem(new V1EnvVar().name("MODRINTH_MODPACK").value(Slug))
+                        .addEnvItem(new V1EnvVar().name("DIFFICULTY").value("normal"))
+                        .addEnvItem(new V1EnvVar().name("ALLOW_FLIGHT").value("true"))
+                        .addEnvItem(new V1EnvVar().name("MOTD").value("Server Brought to you by Xylophone"))
+                        .addEnvItem(new V1EnvVar().name("MEMORY").value(Integer.toString(memory)+"G"))
+                        .addEnvItem(new V1EnvVar().name("EULA").value("TRUE"))
+                        .addEnvItem(new V1EnvVar().name("query.port").value(Integer.toString(portNumber)))
+                        .volumeMounts(Collections.singletonList(
+                                new V1VolumeMount()
+                                        .name(PVName)  // Volume name (should match pod volume name)
+                                        .mountPath("/"+PVName)   // Mount path inside the container
                         ));
             default:
                 return new V1Container();

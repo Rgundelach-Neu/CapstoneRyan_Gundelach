@@ -7,6 +7,9 @@
 Body{
     background: var(--primaryColor);
 }
+Footer{
+    padding: 10%;
+}
 .AuthStage{
     width: 30%;
     height: 50%;
@@ -110,3 +113,11 @@ margin-left: 10px;
 .CenterText{
     text-align: center;
 }
+.flex{
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+}
+.flexItem{
+    flex-grow: 1;
+    }
