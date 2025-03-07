@@ -48,6 +48,9 @@ public class ServersController {
     }
     @PostMapping("/Home/Server")
     public String PostServers(Model model,@ModelAttribute ServerInformation information){
+        if(!GlobalObjects.isAllowed()){
+            return "redirect:/loginUser";
+        }
         if(information.PodName.length() >15){
             portNumbers = kubernetesAPI.CorrectPortNumber(portNumbers);
             List<ServerManagementInfo> info = new ArrayList<>();
@@ -70,6 +73,9 @@ public class ServersController {
     }
     @GetMapping("/Home/Server/Delete/{id}")
     public String PostServers(@PathVariable("id") String info){
+        if(!GlobalObjects.isAllowed()){
+            return "redirect:/loginUser";
+        }
         portNumbers.add(kubernetesAPI.DeleteServer(info.toLowerCase()));
         return "redirect:/Home/Server";
     }

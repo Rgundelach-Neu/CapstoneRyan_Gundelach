@@ -50,10 +50,10 @@ public class LoginController {
                         User.withUsername(possibleUser.getName())
                                 .password(possibleUser.getPassword())
                                 .roles(possibleUser.getRoles()).build());
-
+                GlobalObjects.SetCurrentUser(possibleUser);
+                return "redirect:/Home";
             }
-            GlobalObjects.SetCurrentUser(possibleUser);
-            return "redirect:/Home";
+
         }
     return "login";
     }

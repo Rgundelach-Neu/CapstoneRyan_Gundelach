@@ -81,6 +81,7 @@ public class Kubernetes {
         String PVName = info.getPodName()+"-volume";
         String RuntimeName =info.getPodName()+"-runtime";
         NameSpaceExists();
+        IngressPolicy();
         RuntimeNameExists(RuntimeName,info.getMemory());
         if(info.getServerType().equals("Terraria")){
             CreatePersistentVolume(PVName,PVCName,true);
@@ -411,10 +412,10 @@ public class Kubernetes {
                                         .port(25565).targetPort(new IntOrString(25565))
                                         .protocol("UDP")
                                         .name(ServerName+"-udp"))
-                        .externalIPs(Collections.singletonList("192.168.1.7"))
                         .ipFamilyPolicy("SingleStack")
                         .selector(Collections.singletonMap("app",ServerName))
-                        .type("NodePort")
+                        .type("LoadBalancer")
+                        .externalTrafficPolicy("Local")
 
 
                 );
@@ -659,6 +660,35 @@ public class Kubernetes {
             default:
                 return new V1Container();
         }
+    }
+
+    private void IngressPolicy(){
+        NetworkingV1Api api = new NetworkingV1Api(client);
+        try {
+            V1NetworkPolicyList list = api.listNamespacedNetworkPolicy(WORKING_NAMESPACE).execute();
+            if(list.getItems().size()>0){
+                return;
+            }
+        List<String> policies = new ArrayList<>();
+        policies.add("Ingress");
+        policies.add("Egress");
+        V1NetworkPolicy policy = new V1NetworkPolicy()
+                .apiVersion("networking.k8s.io/v1")
+                .kind("NetworkPolicy")
+
+                .metadata(
+                        new V1ObjectMeta()
+                                .name("allow-all")
+                                .namespace(WORKING_NAMESPACE)
+                )
+                .spec(new V1NetworkPolicySpec()
+                        .policyTypes(policies));
+
+            api.createNamespacedNetworkPolicy(WORKING_NAMESPACE,policy).execute();
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }
 

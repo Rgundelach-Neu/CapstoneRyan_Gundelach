@@ -44,6 +44,9 @@ public class ProfileController {
     @PostMapping("/Home/Profile/Update")
     @PreAuthorize("hasRole('USER')")
     public String updateUserProfile(@ModelAttribute ProfileInformation UpdatedUser){
+        if(!GlobalObjects.isAllowed()){
+            return "redirect:/loginUser";
+        }
         Users user = new Users(UpdatedUser.getUsername(), UpdatedUser.getEmail(), UpdatedUser.getPassword());
         userManager.updateUser(user,GlobalObjects.getCurrentUser().getName());
 
